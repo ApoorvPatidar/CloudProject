@@ -1,4 +1,5 @@
 # Files main purpose is to read the data from the source.
+# File Reads the data from the source and then converts the data into train and test data and then saves the data into the artifacts folder.
 
 import os
 import sys
