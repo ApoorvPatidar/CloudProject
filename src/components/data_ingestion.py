@@ -1,3 +1,5 @@
+# Files main purpose is to read the data from the source.
+
 import os
 import sys
 from src.exception import CustomException
@@ -5,6 +7,7 @@ from src.logger import logging
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from dataclasses import dataclass
+from src.components.data_transformation import DataTransformationConfig, DataTransformation
 
 @dataclass
 # its better to use the data class when defining only the variables 
@@ -45,5 +48,8 @@ class DataIngestion:
             raise CustomException(e, sys)
         
 if __name__ == "__main__":
-    data_ingestion = DataIngestion()
-    data_ingestion.initiate_data_ingestion()
+    obj = DataIngestion()
+    train_df ,test_df = obj.initiate_data_ingestion()
+
+    data_transformation = DataTransformation()
+    data_transformation.initiate_data_transformation(train_df, test_df)

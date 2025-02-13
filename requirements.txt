@@ -1,8 +1,11 @@
 pandas 
 numpy 
 scikit-learn
-matplotlib 
+matplotlib
+catboost
+xgboost 
 seaborn 
 joblib
 flask
+dill
 #-e . ## -e. is used in the reqirements.txt file which indicates to the setup file ssuch that the setup files get built in the editable mode

@@ -9,6 +9,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from src.exception import CustomException
 from src.logger import logging
+from src.utils import save_object
 
 
 @dataclass
@@ -21,23 +22,23 @@ class DataTransformation:
     def __init__(self):
         self.data_transformation_config = DataTransformationConfig()
 
-    def get__data_transfomer_object(self):
+    def get_data_transfomer_object(self):
         try:
             numerical_cols = ["writing_score", "reading_score"]
             categorical_cols = ['gender' ,'race_ethnicity' ,'parental_level_of_education' ,'lunch' ,'test_preparation_course']
 
             num_pipeline = Pipeline(
                 steps = [
-                    ('imputer', SimpleImputer(strategy='median'))  # Replacing the missing value with median
-                    ('scaler', StandardScaler())
+                    ('imputer', SimpleImputer(strategy='median')),  # Replacing the missing value with median
+                    ('scaler', StandardScaler(with_mean=False))
                     ]
                 )
             
             cat_pipeline = Pipeline(
                 steps = [
-                    ('imputer', SimpleImputer(strategy='most_frequent')) # Replacing the missing values with the mode i.e most frequent values
-                    ('one_hot_encoder', OneHotEncoder())
-                    ('scaler', StandardScaler())
+                    ('imputer', SimpleImputer(strategy='most_frequent')), # Replacing the missing values with the mode i.e most frequent values
+                    ('one_hot_encoder', OneHotEncoder()),
+                    ('scaler', StandardScaler(with_mean=False))
                     ]
                 )
             
@@ -52,14 +53,15 @@ class DataTransformation:
                 )
             
             return preprocessor
-        except:
-            pass
+        
+        except Exception as e:
+            raise CustomException(e, sys)
 
             
     def initiate_data_transformation(self, train_path, test_path):
         try:
-            train_df = pd.read_csv(train_df)
-            test_df = pd.read_csv(test_df)
+            train_df = pd.read_csv(train_path)
+            test_df = pd.read_csv(test_path)
 
             logging.info("Read the Training and Testing Data")
 
@@ -99,6 +101,6 @@ class DataTransformation:
 
             return (train_arr, test_arr, self.data_transformation_config.preprocessor_obj_file_path) # Returns train, test, pkl file
         
-        except:
-            pass
+        except Exception as e:
+            raise CustomException(e, sys)
 
