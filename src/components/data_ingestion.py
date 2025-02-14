@@ -10,6 +10,8 @@ from sklearn.model_selection import train_test_split
 from dataclasses import dataclass
 from src.components.data_transformation import DataTransformationConfig, DataTransformation
 
+from src.components.model_trainer import ModelTrainerConfig, ModelTrainer
+
 @dataclass
 # its better to use the data class when defining only the variables 
 # Use the normal conventional methods when there are functions in the class 
@@ -53,4 +55,10 @@ if __name__ == "__main__":
     train_df ,test_df = obj.initiate_data_ingestion()
 
     data_transformation = DataTransformation()
-    data_transformation.initiate_data_transformation(train_df, test_df)
+    train_arr, test_arr, _ = data_transformation.initiate_data_transformation(train_df, test_df)
+
+    modeltrainer = ModelTrainer()
+    print(modeltrainer.initiate_model_trainer(train_arr, test_arr))
+
+    
+    

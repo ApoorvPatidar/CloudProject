@@ -9,8 +9,9 @@ from sklearn.model_selection import cross_val_score
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
 from xgboost import XGBRegressor
-from sklearn.model_selection import GridSearchCV
 
+
+from src.utils import evaluate_models
 from src.exception import CustomException
 from src.logger import logging 
 from src.utils import save_object 
@@ -24,14 +25,14 @@ class ModelTrainer:
         self.model_trainer_config = ModelTrainerConfig()
 
 
-    def initiate_model_trainer(self, train_array, test_array, preprocessor_path):
+    def initiate_model_trainer(self, train_array, test_array):
         try:
             logging.info("Spliting train and test data")
             x_train, y_train, x_test, y_test = (
                 train_array[:, :-1],
                 train_array[:, -1],
                 test_array[:, :-1],
-                test_array[:, :-1]
+                test_array[:, -1]
             )
             models = {
                 "Random Forest": RandomForestRegressor(),
@@ -86,16 +87,28 @@ class ModelTrainer:
                 }
             }
 
-            best_model = {}
+            model_report:dict = evaluate_models(x_train, y_train, x_test, y_test, models, param_grids)
+            
+            best_r2_score = max(sorted(model_report.values()))
+            best_model_name = max(model_report, key=model_report.get)
 
-            for model_name, model in models.items():
-                logging.info(f"Applying the GridSearch on {model_name}")
-                if model_name in param_grids:
-                    grid_search = GridSearchCV(model, param_grids[model_name], scoring = 'r2', cv=3, n_jobs=-1)
-                    grid_search.fit(x_train, y_train)
-                    best_param = grid_search.best_params_
-                    best_param.predict(x_train)
+            best_model =  models[best_model_name]
 
+            if best_r2_score < 0.6:
+                raise CustomException("No Best Model Found")
+            
+            logging.info("Best Model Found on training and testing data")
+
+            save_object(
+                file_path = self.model_trainer_config.trained_model_file_path, # File path of where to save the pkl file
+                obj = best_model  # Pickle file of the best model
+            )   
+
+            # predicted = best_model.predict(x_test)
+            # r2_square = r2_score(y_test, predicted)
+            
+
+            return best_r2_score
 
 
         except Exception as e:
