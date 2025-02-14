@@ -28,7 +28,7 @@ def evaluate_models(x_train, y_train, x_test, y_test, models, param_grids):
         for model_name, model in models.items():
             logging.info(f"Applying the GridSearch on {model_name}")
             if model_name in param_grids:
-                grid_search = GridSearchCV(model,param_grids[model_name], scoring = 'r2', cv=2, n_jobs=-1)
+                grid_search = GridSearchCV(model,param_grids[model_name], scoring = 'r2', cv=4, n_jobs=-1)
                 grid_search.fit(x_train, y_train)
                 best_model = grid_search.best_estimator_
 
