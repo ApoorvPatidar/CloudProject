@@ -1,56 +1,65 @@
 import os
 import sys
-import numpy as np
+
+import numpy as np 
 import pandas as pd
 import dill
-from src.logger import logging
-from src.exception import CustomException
-from sklearn.model_selection import GridSearchCV
+import pickle
 from sklearn.metrics import r2_score
+from sklearn.model_selection import GridSearchCV
 
+from src.exception import CustomException
 
 def save_object(file_path, obj):
     try:
         dir_path = os.path.dirname(file_path)
-        os.makedirs(dir_path, exist_ok = True)
 
-        with open(file_path, 'wb') as file_obj:
-            dill.dump(obj, file_obj)
+        os.makedirs(dir_path, exist_ok=True)
 
+        with open(file_path, "wb") as file_obj:
+            pickle.dump(obj, file_obj)
 
     except Exception as e:
         raise CustomException(e, sys)
     
-    
-def evaluate_models(x_train, y_train, x_test, y_test, models, param_grids):
+def evaluate_models(X_train, y_train,X_test,y_test,models,param):
     try:
         report = {}
+
         for model_name, model in models.items():
-            logging.info(f"Applying the GridSearch on {model_name}")
-            if model_name in param_grids:
-                grid_search = GridSearchCV(model,param_grids[model_name], scoring = 'r2', cv=4, n_jobs=-1)
-                grid_search.fit(x_train, y_train)
-                best_model = grid_search.best_estimator_
+            # Get the parameters for the current model
+            para = param[model_name]
 
-                logging.info(f"x_train shape: {x_train.shape}, y_train shape: {y_train.shape}")
-                logging.info(f"x_test shape: {x_test.shape}, y_test shape: {y_test.shape}")
+            # Perform GridSearchCV to find the best hyperparameters
+            gs = GridSearchCV(model, para, cv=3)
+            gs.fit(X_train, y_train)
 
-                train_pred = best_model.predict(x_train) # Prediction of the training data
-                test_pred = best_model.predict(x_test)   # Prediction of the testing data
+            # Update the model in the dictionary with the best estimator
+            models[model_name] = gs.best_estimator_
 
-                logging.info(f"train_pred shape: {train_pred.shape}")
-                logging.info(f"test_pred shape: {test_pred.shape}")
+            # Train the model with the best hyperparameters
+            models[model_name].fit(X_train, y_train)
 
-                train_model_score = r2_score(y_train, train_pred)  # R2 score of the training data
-                test_model_score = r2_score(y_test, test_pred)     # R2 score of the testing data
+            # Make predictions
+            y_train_pred = models[model_name].predict(X_train)
+            y_test_pred = models[model_name].predict(X_test)
 
-                report[model_name] = test_model_score
-        
-        return report 
+            # Calculate R2 scores
+            train_model_score = r2_score(y_train, y_train_pred)
+            test_model_score = r2_score(y_test, y_test_pred)
 
+            # Store the test score in the report
+            report[model_name] = test_model_score
+
+        return report
 
     except Exception as e:
         raise CustomException(e, sys)
-        
+    
+def load_object(file_path):
+    try:
+        with open(file_path, "rb") as file_obj:
+            return pickle.load(file_obj)
 
-
+    except Exception as e:
+        raise CustomException(e, sys)

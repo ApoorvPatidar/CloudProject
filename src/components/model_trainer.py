@@ -2,115 +2,97 @@ import os
 import sys
 from dataclasses import dataclass
 from catboost import CatBoostRegressor
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, AdaBoostClassifier
+from sklearn.ensemble import AdaBoostRegressor, GradientBoostingRegressor, RandomForestRegressor,
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.model_selection import cross_val_score
+from sklearn.metrics import r2_score
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
 from xgboost import XGBRegressor
-
-
-from src.utils import evaluate_models
 from src.exception import CustomException
-from src.logger import logging 
-from src.utils import save_object 
+from src.logger import logging
+from src.utils import save_object,evaluate_models
+
 
 @dataclass
 class ModelTrainerConfig:
-    trained_model_file_path = os.path.join('artifacts', 'model.pkl')
+    trained_model_file_path=os.path.join("artifacts","model.pkl")
+
 
 class ModelTrainer:
     def __init__(self):
-        self.model_trainer_config = ModelTrainerConfig()
+        self.model_trainer_config=ModelTrainerConfig()
 
 
-    def initiate_model_trainer(self, train_array, test_array):
+    def initiate_model_trainer(self,train_array,test_array):
         try:
-            logging.info("Spliting train and test data")
-            x_train, y_train, x_test, y_test = (
-                train_array[:, :-1],
-                train_array[:, -1],
-                test_array[:, :-1],
-                test_array[:, -1]
+            logging.info("Split training and test input data")
+            x_train,y_train,x_test,y_test=(
+                train_array[:,:-1],
+                train_array[:,-1],
+                test_array[:,:-1],
+                test_array[:,-1]
             )
             models = {
                 "Random Forest": RandomForestRegressor(),
                 "Decision Tree": DecisionTreeRegressor(),
                 "Gradient Boosting": GradientBoostingRegressor(),
                 "Linear Regression": LinearRegression(),
-                "K-Neighbors": KNeighborsRegressor(),
-                "XGBBoost": XGBRegressor(),
-                "CatBoost": CatBoostRegressor(verbose=False),
-                "AdaBoost": AdaBoostClassifier()
+                "XGBRegressor": XGBRegressor(),
+                "CatBoosting Regressor": CatBoostRegressor(verbose=False),
+                "AdaBoost Regressor": AdaBoostRegressor(),
             }
-            param_grids = {
-                "Random Forest": {
-                    'n_estimators': [50, 100, 150, 200],
-                    'max_depth': [None, 5, 10],
-                    'min_samples_split': [2, 5],
-                    'min_samples_leaf': [1, 2]
-                },
+            params={
                 "Decision Tree": {
-                    'max_depth': [None, 5, 10],
-                    'min_samples_split': [2, 5],
-                    'min_samples_leaf': [1, 2]
+                    'criterion':['squared_error', 'friedman_mse', 'absolute_error', 'poisson'],
                 },
-                "Gradient Boosting": {
-                    'n_estimators': [50, 100, 150, 200],
-                    'learning_rate': [0.01, 0.1],
-                    'max_depth': [3, 5, 10]
+                "Random Forest":{
+                    'n_estimators': [8,16,32,64,128,256]
                 },
-                "Linear Regression": {
-                    'fit_intercept': [True, False]
+                "Gradient Boosting":{
+                    'learning_rate':[.1,.01,.05,.001],
+                    'subsample':[0.6,0.7,0.75,0.8,0.85,0.9],
+                    'n_estimators': [8,16,32,64,128,256]
                 },
-                "K-Neighbors": {
-                    'n_neighbors': [3, 5, 10],
-                    'weights': ['uniform', 'distance'],
-                    'metric': ['minkowski', 'euclidean']
+                "Linear Regression":{},
+                "XGBRegressor":{
+                    'learning_rate':[.1,.01,.05,.001],
+                    'n_estimators': [8,16,32,64,128,256]
                 },
-                "XGBoost": {
-                    'n_estimators': [50, 100, 150],
-                    'learning_rate': [0.01, 0.1],
-                    'max_depth': [3, 5],
-                    'subsample': [0.8, 1.0]
+                "CatBoosting Regressor":{
+                    'depth': [6,8,10],
+                    'learning_rate': [0.01, 0.05, 0.1],
+                    'iterations': [30, 50, 100]
                 },
-                "CatBoost": {
-                    'iterations': [50, 100, 150],
-                    'learning_rate': [0.01, 0.1],
-                    'depth': [3, 5],
-                    'l2_leaf_reg': [1, 3]
-                },
-                "AdaBoost": {
-                    'n_estimators': [50, 100],
-                    'learning_rate': [0.01, 0.1]
+                "AdaBoost Regressor":{
+                    'learning_rate':[.1,.01,0.5,.001],
+                    'n_estimators': [8,16,32,64,128,256]
                 }
+                
             }
 
-            model_report:dict = evaluate_models(x_train, y_train, x_test, y_test, models, param_grids)
+            model_report:dict=evaluate_models(x_train,y_train,x_test,y_test,models,params)
             
-            best_r2_score = max(sorted(model_report.values()))
-            best_model_name = max(model_report, key=model_report.get)
+            best_model_score = max(model_report.values())
 
-            best_model =  models[best_model_name]
+            best_model_name = list(model_report.keys())[
+                list(model_report.values()).index(best_model_score)
+            ]
+            best_model = models[best_model_name]
 
-            if best_r2_score < 0.6:
-                raise CustomException("No Best Model Found")
-            
-            logging.info("Best Model Found on training and testing data")
+            if best_model_score<0.6:
+                raise CustomException("No best model found")
+            logging.info(f"Best found model on both training and testing dataset")
 
             save_object(
-                file_path = self.model_trainer_config.trained_model_file_path, # File path of where to save the pkl file
-                obj = best_model  # Pickle file of the best model
-            )   
+                file_path=self.model_trainer_config.trained_model_file_path,
+                obj=best_model
+            )
 
-            # predicted = best_model.predict(x_test)
-            # r2_square = r2_score(y_test, predicted)
+            predicted=best_model.predict(x_test)
+
+            r2_square = r2_score(y_test, predicted)
+            return r2_square
             
-
-            return best_r2_score
-
-
+            
         except Exception as e:
-            raise CustomException(e, sys)
-             
+            raise CustomException(e,sys)

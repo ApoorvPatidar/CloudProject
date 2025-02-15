@@ -1,11 +1,10 @@
-pandas 
-numpy 
-scikit-learn
+pandas
+numpy
+seaborn
 matplotlib
+scikit-learn
 catboost
-xgboost 
-seaborn 
-joblib
-flask
-dill
-#-e . ## -e. is used in the reqirements.txt file which indicates to the setup file ssuch that the setup files get built in the editable mode
+xgboost
+Flask
+
+#-e .
